@@ -1,22 +1,66 @@
-.stage {
+body {
+    font-family: verdana;
+    font-size: .92em;
+}
+
+#left-col {
+    position: absolute;
+	width: 33%;
+    overflow: hidden;
+}
+
+#middle-col {
+    position: absolute;
+    left: 35%;
+	width: 25%;
+}
+
+#right-col {
+    position: absolute;
+    left: 62%;
+	width: 38%;
+}
+
+.maxheight {
+    height: 99%;
+}
+
+#stage {
 	background-color: black;
-	height: 500px;
-	width: 500px;
+	height: 80%;
 	text-align: center;
 }
+
 #controls {
-	padding-left: 105px;
-
+	margin-right: auto;
+    margin-left: auto;
 }
-/*#left {
 
+#solutionBox {
+    width: 100%;
+    height: 20%;
 }
-#up {
 
+.small-num {
+    width: 3em;
 }
-#down {
 
+#instructions {
+    position: absolute;
+    bottom: 20%;
 }
-#right {
 
-}*/
+#arrowKeysIcon {
+    width: 30px;
+    margin-bottom: -3px;
+}
+
+#spacebar {
+    width: 42px;
+    margin-bottom: -3px;
+}
+
+iframe#runeapps {
+    width: 95%;
+    height: 95%;
+}

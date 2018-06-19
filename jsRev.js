@@ -1,227 +1,208 @@
-// 'notes' to store Arrows  
+const DIRECTIONS = {
+    left: { keycode: 37 },
+    down: { keycode: 40 },
+    up: { keycode: 38 },
+    right: { keycode: 39 }
+};
+const THRESH = {bottom: 0, top: Infinity};
+const DEFAULT_SPACING = 4;
+const DEFAULT_ARROW_SPAWN_INTERVAL = 12;
+var frame = 0;
+var best = 0;
+// 'notes' to store Arrows
 var notes = [];
-
+// Stops animation
+var halt = false, paused = false;
+var solution = [], startTime, docHeight, practiceMode;
 
 // ==== CLASS FOR ARROWS ==== //
-
 // 1. Direction of arrows
 // 2. jQuery img that links to direction bottom
-// 3. Destroy when it arrow gets to the 
+// 3. Destroy when it arrow gets to the
 // 4. Explode when arrow gets to the bottom
-
 // Class Arrow
 function Arrow(direction) {
-
 	// CSS spacings for the arrows //
-	var xPos = null;
-
-	switch(direction) {
-
-		case "left" : xPos = "115px";
-		break;
-
-		case "up" : xPos = "182";
-		break;
-
-		case "down" : xPos = "252px";
-		break;
-
-		case "right" : xPos = "322px";
-		break;
-
-	}
-
 	this.direction = direction;
-	this.image = $("<img src='./arrows/" + direction + ".gif'/>");
+	this.image = $('<img src="./arrows/' + direction + '.gif"/>');
 	this.image.css({
-
-		position: "absolute",
-		top: "0px",
-		left: xPos
-
+		position: 'absolute',
+		top: '0px',
+		left: $('#' + direction).position().left
 	});
-
-	$('.stage').append(this.image);
-
-}// ends CLASS Arrow
+	$('#stage').append(this.image);
+}
 
 // To enable animating the arrows
 Arrow.prototype.step = function() {
-
-	// Controls the speed of the arrows
-	this.image.css("top", "+=4px");
-
+    // Check for cleanup
+    if (this.image.position().top > docHeight) {
+        this.destroy();
+        $('#misses').text(Number($('#misses').text())+1);
+    }
+	// Controls the vertical spacing of the arrows
+	this.image.css('top', '+=' + $('#spacing').val() + 'px');
 };
 
 // Deletes arrows when they get to bottom of page
 Arrow.prototype.destroy = function() {
-
 	// removes the image of the DOM
 	this.image.remove();
-
 	// Removes the note/arrow from memory/array
-	notes.splice(0,1);
-
+	notes.splice(notes.indexOf(this), 1);
+    if(solution.length === 0 && notes.length === 0) { // finished
+        console.log((new Date() - startTime)/1000 + ' seconds');
+        stop();
+    }
 };
 
-// Explodes arrow when hit
-Arrow.prototype.explode = function() {
+function destroyAll() {
+    notes.forEach(n => {
+        n.image.remove();
+    });
+    notes = [];
+}
 
-	this.image.remove();
+// https://runeapps.org/apps/clue/
+function parseSolution() {
+    solutionRaw = $('#solutionBox').val();
+    if(!solutionRaw) { return; }
+    var trimmed = solutionRaw.match(/[^1]+1\.([^S]+)Solved.*/);
+    trimmed = trimmed ? trimmed[1] : solutionRaw;
+    var replaced = trimmed.toLowerCase().replace(/[^a-z]/g, '') || solutionRaw;
+    solution = replaced.split(/(down|left|up|right)/g).filter(n => !!n);
+}
 
-};
+function gen() {
+    if(practiceMode) {
+        randomGen();
+    } else {
+        arrayGen();
+    }
+}
 
-
-
-// For random arrows
-var randNum = 0;
-
-// Frame increasing
-var frame = 0;
-
-// Determines the speed of notes
-var arrowSpawnRate = 40;
-
+function arrayGen() {
+    if(solution.length === 0) { return; }
+    notes.push(new Arrow(solution.shift()));
+}
 
 // Random generator for arrows
 function randomGen() {
-
 	// Randomizes between 1 and 4
-	randNum = Math.floor(Math.random() * 4) + 1;
-
-	if (randNum === 1) {
-
-		notes.push(new Arrow("left"));
-
-	}
-	if (randNum === 2) {
-
-		notes.push(new Arrow("right"));
-
-	}
-	if (randNum === 3) {
-
-		notes.push(new Arrow("up"));
-		
-	}
-	if (randNum === 4) {
-
-		notes.push(new Arrow("down"));
-
-	}
-
-}// ends randomGen()
-
+	var randNum = Math.floor(Math.random() * 4);
+    notes.push(new Arrow(Object.keys(DIRECTIONS)[randNum]));
+}
 
 // Render function //
 function render() {
-
-	if (frame++ % arrowSpawnRate === 0) {
-
-		randomGen();
-
+	if (frame++ % $('#interval').val() === 0) {
+		gen();
 	}
-
 	// Animate arrows showering down //
-	for (var i = notes.length - 1; i >= 0; i--) {
+	notes.map(n => n.step());
+}
 
-		notes[i].step();
+function init() {
+    // shim layer with setTimeout fallback
+    window.requestAnimFrame = (function() {
+        return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        function(callback) {
+            window.setTimeout(callback, 40 / 75); // framerate?
+        };
+    })();
 
-		// Check for cleanup
-		if (notes[i].image.position().top > 615) {
+    $('#go').on('click', go);
+    $('#stop').on('click', stop);
+    $('#practice').on('click', function() {
+        $('#solutionBox').attr('disabled', $('#practice').is(':checked'));
+    });
 
-			notes[i].destroy();
+    $('#stop').attr('disabled', true);
+    $('#spacing').val(DEFAULT_SPACING);
+    $('#interval').val(DEFAULT_ARROW_SPAWN_INTERVAL);
 
-		}
+    var instructions = [
+        'Paste slide puzzle screenshot into runeapps on the right',
+        'In settings, ensure Output type is Instruction list, Flip directions',
+        'Open guide',
+        'Ctrl+A, Ctrl+C',
+        'Paste here',
+        'Click Go!'
+    ]
+    placeholder = 'Instructions:\n'
+    instructions.forEach(function(instr, i) {
+        placeholder += (i+1) + '. ' + instr + '\n'
+    });
+    $('#solutionBox').attr('placeholder', placeholder);
 
-	}
+    $('#controls').width(0);
+    var imgSelector = Object.keys(DIRECTIONS).map(k=>'#' + k).join(',');
+    $.map($(imgSelector), function(img) {
+        $(img).load(() => $('#controls').width((el, old) => old + $(img).width()));
+        if(img.complete) { $(img).load(); }
+    });
+}
+$(init);
 
-}// ends render()
+// jQuery to animate arrows
+function go() {
+    startTime = new Date();
+    halt = false;
+    docHeight = $(document).height();
+    practiceMode = $('#practice').is(':checked');
+    $('#practice').attr("disabled", true);
+    $('#go').attr('disabled', true);
+    $('#stop').attr('disabled', false);
+    $('#go').blur();
+    if(!practiceMode) {
+        parseSolution();
+    }
 
+    // Infinte loop for game play
+    (function animloop() {
+        if(halt) { return; }
+        requestAnimFrame(animloop);
+        if(paused) { return; }
+        render();
+    })();
 
+}
 
-// jQuery to animate arrows //
-$(document).ready(function () {
-
-	// shim layer with setTimeout fallback
-	window.requestAnimFrame = (function() {
-
-		return window.requestAnimationFrame ||
-
-		window.webkitRequestAnimationFrame ||
-
-		window.mozRequestAnimationFrame ||
-
-		function(callback) {
-
-			window.setTimeout(callback, 40 / 75);
-
-		};
-
-	})();
-
-	/*	place the rAF *before* the render() 
-		to assure as close to 60fps with the 
-		setTimeout fallback.					*/
-
-	// Infinte loop for game play
-	(function animloop() {
-
-		requestAnimFrame(animloop);
-
-		render();
-
-	})();// ends (function animloop() )
-
-
-});// ends $(doc).ready
-
-
+function stop() {
+    halt = true;
+    paused = false;
+    $('#go').attr('disabled', false);
+    $('#stop').attr('disabled', true);
+    $('#practice').attr("disabled", false);
+    destroyAll();
+}
 
 // Listening for when the key is pressed
-$(document).keydown( function(event) {
-	
-	for (var i = 0; i < notes.length; i++) {
-	
-			console.log(notes[i].image.position().top);
-
-		if (event.keyCode == 37 && notes[i].direction == "left") {
-
-			if (notes[i].image.position().top > 490 && notes[i].image.position().top < 530) {
-
-				console.log("LEFT! "+notes[i].explode());
-
-			}
-			
-		}
-		if (event.keyCode == 38 && notes[i].direction == "up") {
-
-			if (notes[i].image.position().top > 490 && notes[i].image.position().top < 530) {
-				
-				console.log("UP! "+notes[i].explode());
-
-			}
-
-		}
-		if (event.keyCode == 40 && notes[i].direction == "down") {
-
-			if (notes[i].image.position().top > 490 && notes[i].image.position().top < 530) {
-				
-				console.log("DOWN! "+notes[i].explode());
-
-			}
-
-		}
-		if (event.keyCode == 39 && notes[i].direction == "right") {
-
-			if (notes[i].image.position().top > 490 && notes[i].image.position().top < 530) {
-				
-				console.log("RIGHT! "+notes[i].explode());
-
-			}
-
-		}
-
-	}// ends loop
-
-});// ends $(doc).keyup
+$(document).keydown(function(event) {
+    // Spacebar to pause/resume
+    if(event.keyCode === 32) {
+        paused = !paused;
+        return;
+    }
+    if(paused || halt || (notes.length === 0 && solution.length === 0)) { return; }
+    // use forLoop for more 'DDR' like behavior
+	// notes.forEach(function(note) {
+        note = notes[0];
+        noteTop = note.image.position().top;
+		if (DIRECTIONS[note.direction].keycode === event.keyCode &&
+            noteTop > THRESH.bottom && noteTop < THRESH.top) {
+                note.destroy();
+                $('#hits').text(Number($('#hits').text())+1);
+                $('#streak').text(Number($('#streak').text())+1);
+		} else {
+            $('#misses').text(Number($('#misses').text())+1);
+            $('#streak').text(0);
+        }
+        if(Number($('#streak').text()) >= best) {
+            best = $('#streak').text();
+            $('#best').text(best);
+        }
+	// });
+});
