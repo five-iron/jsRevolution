@@ -3,26 +3,25 @@ body {
     font-size: .92em;
 }
 
-#left-col {
+.column {
     position: absolute;
+    top: 1%;
+    height: 99%;
+}
+
+#left-col {
 	width: 33%;
     overflow: hidden;
 }
 
 #middle-col {
-    position: absolute;
     left: 35%;
 	width: 25%;
 }
 
 #right-col {
-    position: absolute;
     left: 62%;
 	width: 38%;
-}
-
-.maxheight {
-    height: 99%;
 }
 
 #stage {
@@ -32,8 +31,8 @@ body {
 }
 
 #controls {
-	margin-right: auto;
-    margin-left: auto;
+	margin: 0 auto;
+    display: table
 }
 
 #solutionBox {

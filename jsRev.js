@@ -130,19 +130,12 @@ function init() {
         'Ctrl+A, Ctrl+C',
         'Paste here',
         'Click Go!'
-    ]
-    placeholder = 'Instructions:\n'
+    ];
+    placeholder = 'Instructions:\n';
     instructions.forEach(function(instr, i) {
-        placeholder += (i+1) + '. ' + instr + '\n'
+        placeholder += (i+1) + '. ' + instr + '\n';
     });
     $('#solutionBox').attr('placeholder', placeholder);
-
-    $('#controls').width(0);
-    var imgSelector = Object.keys(DIRECTIONS).map(k=>'#' + k).join(',');
-    $.map($(imgSelector), function(img) {
-        $(img).load(() => $('#controls').width((el, old) => old + $(img).width()));
-        if(img.complete) { $(img).load(); }
-    });
 }
 $(init);
 
@@ -176,6 +169,10 @@ function stop() {
     $('#go').attr('disabled', false);
     $('#stop').attr('disabled', true);
     $('#practice').attr("disabled", false);
+    // clear transient values
+    $('#hits').text(0);
+    $('#streak').text(0);
+    $('#misses').text(0);
     destroyAll();
 }
 
