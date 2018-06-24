@@ -113,6 +113,9 @@ function init() {
         };
     })();
 
+    let solutionBoxBlurred = true;
+    $('#solutionBox').on('click', function(){if(solutionBoxBlurred) { this.select(); solutionBoxBlurred=false; }});
+    $('#solutionBox').on('blur', () => solutionBoxBlurred=true);
     $('#go').on('click', go);
     $('#stop').on('click', stop);
     $('#practice').on('click', function() {
