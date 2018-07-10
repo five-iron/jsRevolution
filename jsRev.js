@@ -4,7 +4,6 @@ const DIRECTIONS = {
     up: { keycode: 38 },
     right: { keycode: 39 }
 };
-const THRESH = {bottom: 0, top: Infinity};
 const DEFAULT_SPACING = 4;
 const DEFAULT_ARROW_SPAWN_INTERVAL = 12;
 var frame = 0;
@@ -14,6 +13,9 @@ var notes = [];
 // Stops animation
 var halt = false, paused = false;
 var solution = [], startTime, docHeight, practiceMode;
+// amount to increment progress bar
+var progressInc;
+var currentProgress;
 
 // ==== CLASS FOR ARROWS ==== //
 // 1. Direction of arrows
@@ -39,6 +41,7 @@ Arrow.prototype.step = function() {
     if (this.image.position().top > docHeight) {
         this.destroy();
         $('#misses').text(Number($('#misses').text())+1);
+        $('#streak').text(0);
     }
 	// Controls the vertical spacing of the arrows
 	this.image.css('top', '+=' + $('#spacing').val() + 'px');
@@ -82,7 +85,14 @@ function gen() {
 }
 
 function arrayGen() {
-    if(solution.length === 0) { return; }
+    if(solution.length === 0) {
+		$("#progress-bar-fill").width('100%');
+		return;
+	} else {
+		// advance progress bar
+		currentProgress += progressInc;
+		$("#progress-bar-fill").width((currentProgress) + '%');
+	}
     notes.push(new Arrow(solution.shift()));
 }
 
@@ -149,11 +159,13 @@ function go() {
     docHeight = $(document).height();
     practiceMode = $('#practice').is(':checked');
     $('#practice').attr("disabled", true);
-    $('#go').attr('disabled', true);
     $('#stop').attr('disabled', false);
+    $('#go').attr('disabled', true);
     $('#go').blur();
     if(!practiceMode) {
         parseSolution();
+		currentProgress = 0;
+		progressInc = 100 / solution.length;
     }
 
     // Infinte loop for game play
@@ -172,6 +184,7 @@ function stop() {
     $('#go').attr('disabled', false);
     $('#stop').attr('disabled', true);
     $('#practice').attr("disabled", false);
+	$("#progress-bar-fill").width(0);
     // clear transient values
     $('#hits').text(0);
     $('#streak').text(0);
@@ -186,23 +199,21 @@ $(document).keydown(function(event) {
         paused = !paused;
         return;
     }
+
     if(paused || halt || (notes.length === 0 && solution.length === 0)) { return; }
-    // use forLoop for more 'DDR' like behavior
-	// notes.forEach(function(note) {
-        note = notes[0];
-        noteTop = note.image.position().top;
-		if (DIRECTIONS[note.direction].keycode === event.keyCode &&
-            noteTop > THRESH.bottom && noteTop < THRESH.top) {
-                note.destroy();
-                $('#hits').text(Number($('#hits').text())+1);
-                $('#streak').text(Number($('#streak').text())+1);
-		} else {
-            $('#misses').text(Number($('#misses').text())+1);
-            $('#streak').text(0);
-        }
-        if(Number($('#streak').text()) >= best) {
-            best = $('#streak').text();
-            $('#best').text(best);
-        }
-	// });
+
+	note = notes[0];
+	noteTop = note.image.position().top;
+	if (DIRECTIONS[note.direction].keycode === event.keyCode) {
+			note.destroy();
+			$('#hits').text(Number($('#hits').text())+1);
+			$('#streak').text(Number($('#streak').text())+1);
+	} else {
+		$('#misses').text(Number($('#misses').text())+1);
+		$('#streak').text(0);
+	}
+	if(Number($('#streak').text()) >= best) {
+		best = $('#streak').text();
+		$('#best').text(best);
+	}
 });
